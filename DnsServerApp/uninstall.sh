@@ -10,6 +10,9 @@ else
 fi
 
 dnsConfig="/etc/dns"
+dnsLog="/var/log/technitium/dns"
+
+serviceUser="dns-server"
 
 echo ""
 echo "================================="
@@ -32,8 +35,7 @@ then
         then
             cp -a $dnsDir/resolv.conf.bak /etc/resolv.conf >/dev/null 2>&1
         else
-            echo "nameserver 8.8.8.8" >> /etc/resolv.conf
-            echo "nameserver 1.1.1.1" >> /etc/resolv.conf
+            printf "nameserver 8.8.8.8\nnameserver 1.1.1.1\n" > /etc/resolv.conf
         fi
 
         if [ -f "/etc/NetworkManager/NetworkManager.conf" ]
@@ -48,6 +50,8 @@ then
 
         systemctl enable systemd-resolved >/dev/null 2>&1
         systemctl start systemd-resolved >/dev/null 2>&1
+
+        userdel -f $serviceUser >/dev/null 2>&1
     fi
 
     rm -rf $dnsDir >/dev/null 2>&1
@@ -62,16 +66,35 @@ then
     if [ -d "$dnsConfig" ]
     then
         echo ""
-        printf "Do you want to delete the config folder at '$dnsConfig' which contains all of the DNS server config files? (y/N): "
-        read -r answer
+        printf "Do you want to delete the '$dnsConfig' folder which contains all of the DNS server config files? (y/N): "
+        read -r answer1 < /dev/tty
 
-        case "$answer" in
+        case "$answer1" in
             [Yy]* )
                 rm -rf "$dnsConfig" >/dev/null 2>&1
                 echo "The '$dnsConfig' config folder was deleted successfully."
                 ;;
             * )
+                chown -R root:root "$dnsConfig" >/dev/null 2>&1
                 echo "The '$dnsConfig' config folder was not deleted and it will be reused if you install the DNS server again."
+                ;;
+        esac
+    fi
+
+    if [ -d "$dnsLog" ]
+    then
+        echo ""
+        printf "Do you want to delete the '$dnsLog' folder which contains all of the DNS server log files? (y/N): "
+        read -r answer2 < /dev/tty
+
+        case "$answer2" in
+            [Yy]* )
+                rm -rf "$dnsLog" >/dev/null 2>&1
+                echo "The '$dnsLog' logs folder was deleted successfully."
+                ;;
+            * )
+                chown -R root:root "$dnsLog" >/dev/null 2>&1
+                echo "The '$dnsLog' logs folder was not deleted."
                 ;;
         esac
     fi
