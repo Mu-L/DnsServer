@@ -13,9 +13,11 @@ else
 fi
 
 dnsConfig="/etc/dns"
+dnsLog="/var/log/technitium/dns"
 dnsTar="$dnsDir/DnsServerPortable.tar.gz"
 dnsUrl="https://download.technitium.com/dns/DnsServerPortable.tar.gz"
 
+serviceUser="dns-server"
 installLog="$dnsDir/install.log"
 
 echo ""
@@ -25,6 +27,8 @@ echo "==============================="
 echo ""
 
 mkdir -p $dnsDir
+mkdir -p $dnsConfig
+
 echo "" > $installLog
 
 if dotnet --list-runtimes 2> /dev/null | grep -q "$dotnetRuntime"; 
@@ -178,6 +182,12 @@ then
     echo "Restarting systemd service..."
     systemctl restart dns.service >> $installLog 2>&1
 else
+    mkdir -p $dnsLog
+	
+    echo "Configuring user and permissions..."
+    useradd --system -M --shell /usr/sbin/nologin $serviceUser >> $installLog 2>&1
+    chown -R $serviceUser:$serviceUser $dnsDir $dnsConfig $dnsLog >> $installLog 2>&1
+
     echo "Configuring systemd service..."
     cp $dnsDir/systemd.service /etc/systemd/system/dns.service
     systemctl enable dns.service >> $installLog 2>&1
